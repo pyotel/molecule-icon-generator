@@ -26,6 +26,7 @@ import warnings
 import requests
 from io import BytesIO
 import xml.etree.ElementTree as ET
+import xml.dom.minidom
 
 # brute force approach to avoid decompression bomb warning by pdf2image and PIL
 from PIL import Image
@@ -805,10 +806,11 @@ def icon_print(mol, name='molecule_icon', directory=os.getcwd(), rdkit_png=False
         if save_png or save_jpeg:
             save_pdf = True
     if save_svg:
-        svg_elementtree = ET.ElementTree(svg)
-        ET.indent(svg_elementtree, space="\t", level=0)
-        with open(fullname, 'wb') as f:
-            svg_elementtree.write(f, encoding='utf-8')
+        #svg_elementtree = ET.ElementTree(svg)
+        svg_string = ET.tostring(svg, encoding="unicode")
+        svg_pretty = xml.dom.minidom.parseString(svg_string).toprettyxml(indent="\t")
+        with open(fullname, "w", encoding="utf-8") as f:
+            f.write(svg_pretty)
     if save_pdf:
         drawing = svg2rlg(fullname)
         renderPDF.drawToFile(drawing, pdf_name)
@@ -979,6 +981,9 @@ if __name__ == "__main__":
     parsed = parse()
     molecule = parse_structure(parsed.SMILE)
     icon_print(molecule, name=parsed.name, directory=parsed.directory, pos_multi=int(300 * parsed.position_multiplier),
-               rdkit_svg=parsed.rdkit_svg, single_bonds=parsed.single_bond, save_png=True, verbose=parsed.verbose,
+               rdkit_svg=parsed.rdkit_svg, single_bonds=parsed.single_bond, save_png=False, verbose=parsed.verbose,
                atom_radius=100 * parsed.atom_multiplier, remove_H=parsed.remove_H,
                shadow=not parsed.hide_shadows, shadow_light=parsed.shadow_light)
+    # graph = graph_3d(mol, name=str(index), rdkit_svg=rdkit_draw, radius_multi=resize, directory=direct,
+    #                                  atom_color=new_color, pos_multi=img_multi, atom_radius=icon_size,
+    #                                  resolution=resolution, remove_H=remove_H)
