@@ -980,10 +980,11 @@ def parse():
 if __name__ == "__main__":
     parsed = parse()
     molecule = parse_structure(parsed.SMILE)
-    icon_print(molecule, name=parsed.name, directory=parsed.directory, pos_multi=int(300 * parsed.position_multiplier),
-               rdkit_svg=parsed.rdkit_svg, single_bonds=parsed.single_bond, save_png=False, verbose=parsed.verbose,
-               atom_radius=100 * parsed.atom_multiplier, remove_H=parsed.remove_H,
-               shadow=not parsed.hide_shadows, shadow_light=parsed.shadow_light)
+    print(molecule)
+    # icon_print(molecule, name=parsed.name, directory=parsed.directory, pos_multi=int(300 * parsed.position_multiplier),
+    #            rdkit_svg=parsed.rdkit_svg, single_bonds=parsed.single_bond, save_png=False, verbose=parsed.verbose,
+    #            atom_radius=100 * parsed.atom_multiplier, remove_H=parsed.remove_H,
+    #            shadow=not parsed.hide_shadows, shadow_light=parsed.shadow_light)
     # graph = graph_3d(mol, name=str(index), rdkit_svg=rdkit_draw, radius_multi=resize, directory=direct,
     #                                  atom_color=new_color, pos_multi=img_multi, atom_radius=icon_size,
     #                                  resolution=resolution, remove_H=remove_H)
