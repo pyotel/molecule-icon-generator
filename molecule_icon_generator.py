@@ -28,6 +28,12 @@ from io import BytesIO
 import xml.etree.ElementTree as ET
 import xml.dom.minidom
 
+
+
+import matplotlib.pyplot as plt
+import meshio
+
+
 # brute force approach to avoid decompression bomb warning by pdf2image and PIL
 from PIL import Image
 Image.MAX_IMAGE_PIXELS = None
@@ -976,15 +982,75 @@ def parse():
     args = parser.parse_args()
     return args
 
+def save_figure_to_stl(mol, name='molecule_icon', directory=os.getcwd(), rdkit_png=False, rdkit_svg=False,
+                       save_rdkit_images=False):
+    # 위에서 정의한 graph_3d 함수의 내용을 여기에 추가
+
+    fig = graph_3d(mol, name=parsed.name, rdkit_svg=parsed.rdkit_svg, directory=parsed.directory,
+                    atom_color=color_map, radius_multi=atom_resize,
+                    pos_multi=int(300 * parsed.position_multiplier), atom_radius=100 * parsed.atom_multiplier,
+                    resolution=10, remove_H=parsed.remove_H)
+
+
+    # meshio로 Figure 객체를 STL 파일로 저장
+    points = []
+    for trace in fig.data:
+        points.extend(list(zip(trace.x.flatten(), trace.y.flatten(), trace.z.flatten())))
+    
+    mesh = meshio.Mesh(
+        points=np.array(points),
+        cells=[("triangle", np.arange(len(points)).reshape(-1, 3))]
+    )
+    
+    meshio.write(os.path.join(directory, f"{name}.obj"), mesh)
+
+    # RDKit 이미지를 저장할 경우
+    if save_rdkit_images:
+        # RDKit 이미지를 저장
+        rdkit_images_dir = os.path.join(directory, "rdkit_images")
+        os.makedirs(rdkit_images_dir, exist_ok=True)
+        rdkit_images = [f"{name}_rdkit.png", f"{name}_rdkit.svg"]
+        
+        if rdkit_png:
+            rdkit_images.append(f"{name}_rdkit.png")
+        if rdkit_svg:
+            rdkit_images.append(f"{name}_rdkit.svg")
+
+        for rdkit_image in rdkit_images:
+            rdkit_image_path = os.path.join(directory, rdkit_image)
+            if os.path.exists(rdkit_image_path):
+                os.rename(rdkit_image_path, os.path.join(rdkit_images_dir, rdkit_image))
+
+    return fig
+
+
 
 if __name__ == "__main__":
     parsed = parse()
     molecule = parse_structure(parsed.SMILE)
-    print(molecule)
-    # icon_print(molecule, name=parsed.name, directory=parsed.directory, pos_multi=int(300 * parsed.position_multiplier),
-    #            rdkit_svg=parsed.rdkit_svg, single_bonds=parsed.single_bond, save_png=False, verbose=parsed.verbose,
-    #            atom_radius=100 * parsed.atom_multiplier, remove_H=parsed.remove_H,
-    #            shadow=not parsed.hide_shadows, shadow_light=parsed.shadow_light)
-    # graph = graph_3d(mol, name=str(index), rdkit_svg=rdkit_draw, radius_multi=resize, directory=direct,
-    #                                  atom_color=new_color, pos_multi=img_multi, atom_radius=icon_size,
-    #                                  resolution=resolution, remove_H=remove_H)
+    
+    fig = save_figure_to_stl(molecule, name="o", save_rdkit_images=False)
+
+    def org_code() :    
+        # icon_print(molecule, name=parsed.name, directory=parsed.directory, pos_multi=int(300 * parsed.position_multiplier),
+        #            rdkit_svg=parsed.rdkit_svg, single_bonds=parsed.single_bond, save_png=False, verbose=parsed.verbose,
+        #            atom_radius=100 * parsed.atom_multiplier, remove_H=parsed.remove_H,
+        #            shadow=not parsed.hide_shadows, shadow_light=parsed.shadow_light)
+        graph = graph_3d(molecule, name=parsed.name, rdkit_svg=parsed.rdkit_svg, directory=parsed.directory,
+                                        pos_multi=int(300 * parsed.position_multiplier), atom_radius=100 * parsed.atom_multiplier,
+                                        resolution=100, remove_H=parsed.remove_H)
+        
+        # Surface 플롯에서 정점과 면 추출
+        vertices = np.array(graph.data[0].z)
+        x, y = np.meshgrid(np.arange(vertices.shape[0]), np.arange(vertices.shape[1]))
+        faces = np.c_[x.flatten(), y.flatten()]
+
+        # 각 삼각형에 대해 3개의 정점이 있는지 확인
+        if faces.shape[0] % 3 != 0:
+            raise ValueError("삼각형 하나당 3개의 정점이 필요합니다.")
+
+        # meshio 메시 객체 생성
+        mesh = meshio.Mesh(points=vertices, cells=[("triangle", faces)])
+
+        # meshio를 사용하여 정점과 면을 OBJ  파일로 저장
+        meshio.write("output_mesh.obj", mesh)
